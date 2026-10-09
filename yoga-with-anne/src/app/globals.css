@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* Default palette values (Sage & Cream). Admin → Appearance overrides these
+   at runtime via html:root { --b* / --a* / --s* } (see src/lib/appearance.ts). */
+:root {
+  --b950: #16241d; --b900: #1e3228; --b800: #2f4a3c; --b700: #3c5c4b; --b600: #4d7160;
+  --t100: #e7ede7; --t200: #d5e0d6; --t300: #b9cabd;
+  --a100: #f7e6dd; --a200: #efcfc0; --a500: #c9764f; --a600: #b85c3f; --a700: #9c4d33;
+  --s50: #faf8f3; --s100: #f4efe6; --s200: #eae2d2; --s300: #ddd2bd;
+}
+
+@theme {
+  --color-oat-50: var(--s50);
+  --color-oat-100: var(--s100);
+  --color-oat-200: var(--s200);
+  --color-oat-300: var(--s300);
+
+  --color-forest-950: var(--b950);
+  --color-forest-900: var(--b900);
+  --color-forest-800: var(--b800);
+  --color-forest-700: var(--b700);
+  --color-forest-600: var(--b600);
+
+  --color-sage-400: var(--t300);
+  --color-sage-300: var(--t300);
+  --color-sage-200: var(--t200);
+  --color-sage-100: var(--t100);
+
+  --color-clay-700: var(--a700);
+  --color-clay-600: var(--a600);
+  --color-clay-500: var(--a500);
+  --color-clay-200: var(--a200);
+  --color-clay-100: var(--a100);
+
+  --color-gold-700: #82601a;
+  --color-gold-800: #5c4511;
+  --color-gold-600: #b98a2f;
+  --color-gold-200: #eeddba;
+
+  --color-bark-700: #4c4a40;
+  --color-bark-500: #6f6d60;
+  --color-bark-300: #a5a396;
+
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 1.1rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-oat-50);
+  color: var(--color-forest-950);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 50, "WONK" 0;
+  letter-spacing: -0.01em;
+}
+
+/* Visible focus for keyboard users everywhere */
+:focus-visible {
+  outline: 3px solid var(--color-forest-700);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print: clean class register / booking summaries */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}
+
+/* Gentle hero art */
+.hero-blob { filter: blur(0.5px); }

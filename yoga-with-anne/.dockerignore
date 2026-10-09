@@ -1,0 +1,13 @@
+node_modules
+.next
+data
+screenshots
+tests
+*.md
+.env
+.env.*
+.git
+.DS_Store
+__MACOSX
+playwright-report
+test-results

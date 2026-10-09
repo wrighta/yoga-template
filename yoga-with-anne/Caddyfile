@@ -1,0 +1,4 @@
+# Put your real domain here, then: docker compose --profile tls up -d
+your-domain.ie {
+    reverse_proxy yoga:3000
+}
