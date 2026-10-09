@@ -186,6 +186,10 @@ const MIGRATIONS: Migration[] = [
     name: "013_retreat_daily_times",
     sql: `ALTER TABLE class_blocks ADD COLUMN daily_times_json TEXT;`,
   },
+  {
+    name: "014_event_summary",
+    sql: `ALTER TABLE class_blocks ADD COLUMN summary TEXT;`,
+  },
 ];
 
 export function migrate(dbPathOverride?: string) {

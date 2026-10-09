@@ -171,6 +171,19 @@ export function SmartBlockForm({
       />
       <Field label="Price for the WHOLE block (€)" name="price" required placeholder="80.00" className="sm:col-span-2" />
 
+      <fieldset className="rounded-[var(--radius-card)] border border-oat-200 p-4 sm:col-span-2">
+        <legend className="px-1 text-sm font-semibold text-forest-900">How can students book?</legend>
+        <label className="inline-flex items-start gap-3 text-sm text-bark-700">
+          <input type="checkbox" name="dropInsEnabled" className="mt-1 h-4 w-4 accent-forest-800" />
+          <span>
+            Also allow booking individual class dates
+            <span className="mt-1 block text-xs text-bark-500">
+              Leave this unticked to sell places only as a whole block. All bookings share the same class capacity.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
       <div className="rounded-[var(--radius-card)] bg-sage-100 p-4 sm:col-span-2" data-testid="series-preview">
         <p className="text-sm font-semibold text-forest-900">
           {preview.length > 0

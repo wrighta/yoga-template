@@ -12,6 +12,7 @@ type QuoteResponse = {
   blockMode?: {
     name: string;
     kind: string;
+    earlyBird?: { basePriceCents: number; until: string } | null;
     description: string | null;
     venueName: string | null;
     classCount: number;
@@ -265,6 +266,15 @@ export function BookFlow({ signedIn, customerId, customerName, customerEmail, bl
           ) : r ? (
             <>
               <ul className="mt-4 space-y-2 text-sm">
+                {quote?.blockMode?.earlyBird ? (
+                  <li className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-gold-200 px-2 py-0.5 text-xs font-bold text-gold-800">
+                      Early bird until {quote.blockMode.earlyBird.until}
+                    </span>
+                    <span className="text-bark-500 line-through">{fmtEuro(quote.blockMode.earlyBird.basePriceCents)}</span>
+                    <span className="text-bark-500">per person</span>
+                  </li>
+                ) : null}
                 {paidLines.map((l, i) => (
                   <li key={i} className="flex justify-between gap-4">
                     <span className="text-bark-700">{l.description}</span>

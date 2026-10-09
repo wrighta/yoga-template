@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listWorkshopViews } from "@/lib/blocks";
+import { listWorkshopViews, eventTeaser } from "@/lib/blocks";
 import { fmtEuro } from "@/lib/money";
 import { fmtDate } from "@/lib/tz";
 import { getSettings } from "@/lib/settings";
 
-function eventTimeLabel(scheduleJson: string | null, kind: string): string | null {
+function eventTimeLabel(scheduleJson: string | null, kind: string, singleDay: boolean): string | null {
   if (!scheduleJson) return null;
   try {
     const schedule = JSON.parse(scheduleJson) as { mode?: string; start?: string; end?: string };
@@ -15,7 +15,7 @@ function eventTimeLabel(scheduleJson: string | null, kind: string): string | nul
       const hour = Number(hourText);
       return `${hour % 12 || 12}:${minute} ${hour < 12 ? "AM" : "PM"}`;
     };
-    const prefix = kind === "retreat" ? "Each day" : "Hours";
+    const prefix = kind === "retreat" && !singleDay ? "Each day" : "Hours";
     return `${prefix}: ${formatTime(schedule.start)} to ${formatTime(schedule.end)}`;
   } catch {
     return null;
@@ -72,9 +72,9 @@ export default async function WorkshopsPage() {
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-forest-800">{datesLabel}</p>
-                  {eventTimeLabel(w.daily_times_json, w.kind) ? <p className="text-sm text-bark-700">{eventTimeLabel(w.daily_times_json, w.kind)}</p> : null}
+                  {eventTimeLabel(w.daily_times_json, w.kind, w.start_date === w.end_date) ? <p className="text-sm text-bark-700">{eventTimeLabel(w.daily_times_json, w.kind, w.start_date === w.end_date)}</p> : null}
                   <p className="text-sm text-bark-500">{w.venueName ?? ""}{w.classTypeName ? ` · ${w.classTypeName}` : ""}</p>
-                  {w.description ? <p className="text-sm leading-relaxed text-bark-700">{w.description}</p> : null}
+                  {eventTeaser(w) ? <p className="text-sm leading-relaxed text-bark-700">{eventTeaser(w)}</p> : null}
 
                   <div className="mt-auto pt-2">
                     <Link href={`/classes/${w.dates[0]?.occurrenceId ?? 0}`} className="text-sm font-semibold text-forest-800 underline underline-offset-4">

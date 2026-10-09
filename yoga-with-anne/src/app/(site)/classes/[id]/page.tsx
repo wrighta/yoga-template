@@ -68,9 +68,16 @@ export default async function ClassDetailPage({
      FROM class_blocks cb JOIN class_series cs ON cs.id = cb.series_id JOIN class_occurrences o ON o.series_id = cs.id
      WHERE o.id = ? AND cb.kind IN ('workshop','retreat') AND cb.publication_status = 'published' AND cs.publication_status = 'published' LIMIT 1`, view.id
   );
+  const eventBlockView = eventOffering ? await getBlockView(eventOffering.id) : null;
+  const eventEarlyBird = !!eventBlockView?.isEarlyBird;
+  const eventEffectivePrice = eventBlockView?.effectivePrice ?? eventOffering?.price_cents ?? 0;
+  const eventEarlyBirdUntil = eventBlockView?.early_bird_until ?? "";
   const scheduleDisplay = eventOffering
-    ? `${fmtDate(`${eventOffering.start_date}T12:00:00.000Z`, settings.timezone, true)} – ${fmtDate(`${eventOffering.end_date}T12:00:00.000Z`, settings.timezone, true)}`
+    ? eventOffering.start_date === eventOffering.end_date
+      ? fmtDate(`${eventOffering.start_date}T12:00:00.000Z`, settings.timezone, true)
+      : `${fmtDate(`${eventOffering.start_date}T12:00:00.000Z`, settings.timezone, true)} – ${fmtDate(`${eventOffering.end_date}T12:00:00.000Z`, settings.timezone, true)}`
     : view.display;
+  const singleDayEvent = !!eventOffering && eventOffering.start_date === eventOffering.end_date;
   let eventSchedule: { mode: "same"; start: string; end: string } | { mode: "daily"; days: { date: string; start: string; end: string }[] } | null = null;
   if (eventOffering?.daily_times_json) {
     try {
@@ -136,7 +143,7 @@ export default async function ClassDetailPage({
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
       <Link href="/classes" className="text-sm font-semibold text-forest-800 underline underline-offset-4">
-        ← All classes
+        ← Back to classes
       </Link>
 
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
@@ -145,9 +152,9 @@ export default async function ClassDetailPage({
           <p className="mt-2 text-lg text-bark-700">{scheduleDisplay}</p>
           {eventSchedule ? (
             <div className="mt-4 rounded-lg bg-sage-100 p-4 text-sm text-forest-900">
-              <h2 className="font-semibold">{eventOffering?.kind === "retreat" ? "Daily retreat times" : "Workshop hours"}</h2>
+              <h2 className="font-semibold">{eventOffering?.kind === "retreat" && !singleDayEvent ? "Daily retreat times" : eventOffering?.kind === "retreat" ? "Retreat hours" : "Workshop hours"}</h2>
               {eventSchedule.mode === "same" ? (
-                <p className="mt-1">{eventOffering?.kind === "retreat" ? "Each day: " : ""}{displayTime(eventSchedule.start)} to {displayTime(eventSchedule.end)}</p>
+                <p className="mt-1">{eventOffering?.kind === "retreat" && !singleDayEvent ? "Each day: " : ""}{displayTime(eventSchedule.start)} to {displayTime(eventSchedule.end)}</p>
               ) : (
                 <ul className="mt-2 space-y-1">{eventSchedule.days.map((day) => <li key={day.date}>{fmtDate(`${day.date}T12:00:00.000Z`, settings.timezone, true)}: {displayTime(day.start)} to {displayTime(day.end)}</li>)}</ul>
               )}
@@ -259,7 +266,16 @@ export default async function ClassDetailPage({
           {eventOffering ? (
           <Card className="p-6">
             <p className="text-sm text-bark-500">Whole event · per person</p>
-            <p className="font-display text-3xl font-semibold text-forest-900">{fmtEuro(eventOffering.price_cents)}</p>
+            {eventEarlyBird ? (
+              <>
+                <p className="font-display text-3xl font-semibold text-forest-900">
+                  {fmtEuro(eventEffectivePrice)} <span className="text-lg font-normal text-bark-500 line-through">{fmtEuro(eventOffering.price_cents)}</span>
+                </p>
+                <p className="mt-1"><span className="rounded-full bg-gold-200 px-2 py-0.5 text-xs font-bold text-gold-800">Early bird until {fmtDate(`${eventEarlyBirdUntil}T12:00:00.000Z`, settings.timezone, true)}</span></p>
+              </>
+            ) : (
+              <p className="font-display text-3xl font-semibold text-forest-900">{fmtEuro(eventOffering.price_cents)}</p>
+            )}
             <p className="mt-2 text-sm text-bark-700">One booking covers the full event. Add places for friends and name each attendee at checkout.</p>
             <p className="mt-3 text-sm text-bark-700">{view.remaining} of {view.capacity} places available</p>
             {view.remaining > 0 ? (

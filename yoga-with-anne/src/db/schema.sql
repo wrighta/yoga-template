@@ -147,7 +147,8 @@ CREATE TABLE IF NOT EXISTS class_blocks (
   price_cents INTEGER NOT NULL,      -- price for the WHOLE block
   weekdays TEXT,                     -- JSON array of ISO weekdays; NULL = all series days
   kind TEXT NOT NULL DEFAULT 'block', -- 'block' | 'workshop'
-  description TEXT,                   -- shown on the public workshop page
+  description TEXT,                   -- itinerary and details, shown on the public event page
+  summary TEXT,                       -- short teaser shown on listing cards
   image_media_id INTEGER,
   early_bird_price_cents INTEGER,     -- optional discounted price
   early_bird_until TEXT,              -- date the early-bird offer ends

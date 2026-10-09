@@ -464,6 +464,33 @@ export async function runFixPassTests(BASE: string, step: (name: string, fn: () 
     });
     assert.equal(blockCheckout.ok, false);
 
+    const privateSeriesId = Number(run(
+      `INSERT INTO class_series (title, class_type_id, venue_id, instructor_id, weekdays, start_time, end_time, capacity, publication_status)
+       VALUES (?,?,?,?,?,'19:30','20:30',?,'draft')`,
+      "Block-only schedule", series.class_type_id, series.venue_id, series.instructor_id, JSON.stringify([weekday]), series.capacity
+    ).lastInsertRowid);
+    const privateOccurrenceIds = dates.slice(0, 2).map((date) => Number(run(
+      `INSERT INTO class_occurrences (series_id, class_type_id, venue_id, instructor_id, title, starts_at, ends_at, capacity, publication_status, source)
+       VALUES (?,?,?,?,?,?,?,?, 'draft','series')`,
+      privateSeriesId, series.class_type_id, series.venue_id, series.instructor_id, "Block-only class", date.startsAt, date.endsAt, series.capacity
+    ).lastInsertRowid));
+    const blockOnlyId = Number(run(
+      `INSERT INTO class_blocks (series_id, name, start_date, end_date, price_cents, weekdays, publication_status)
+       VALUES (?,?,?,?,?,?, 'published')`,
+      privateSeriesId, "Block-only offering", dates[0].dateKey, dates[1].dateKey, 5500, JSON.stringify([weekday])
+    ).lastInsertRowid);
+    assert.ok((await listActiveBlockViews()).some((block) => block.id === blockOnlyId));
+    assert.equal(await getOccurrenceView(privateOccurrenceIds[0]), null, "block-only dates must remain hidden from drop-in browsing");
+    const blockOnlyQuote = await fetch(`${BASE}/api/quote`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blockId: blockOnlyId }),
+    });
+    assert.equal(blockOnlyQuote.status, 200);
+    const blockOnlyCheckout = await startCheckout({
+      email: "block-only@example.com", name: "Block Only", occurrenceIds: [],
+      marketingConsent: false, acceptTerms: true, phone: "087 555 6211", blockId: blockOnlyId,
+    });
+    assert.equal(blockOnlyCheckout.ok, true, "whole-block bookings should work while individual dates stay unpublished");
+
     const publishedBlockId = Number(run(
       `INSERT INTO class_blocks (series_id, name, start_date, end_date, price_cents, weekdays, publication_status)
        VALUES (?,?,?,?,?,?, 'published')`,
@@ -632,6 +659,14 @@ export async function runFixPassTests(BASE: string, step: (name: string, fn: () 
     assert.equal(quote.result.lines[0].qty, 2);
     assert.equal(quote.blockMode.kind, "retreat");
     assert.match(quote.blockMode.rangeLabel, /–/);
+
+    run(`UPDATE class_blocks SET early_bird_price_cents = 3500, early_bird_until = '2999-01-01' WHERE id = ?`, eventId);
+    const ebQuote = await (await fetch(`${BASE}/api/quote`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blockId: eventId, attendeeCount: 2 }),
+    })).json() as { result: { totalCents: number } };
+    assert.equal(ebQuote.result.totalCents, 7000, "early bird price should apply to the quote");
+    run(`UPDATE class_blocks SET early_bird_price_cents = NULL, early_bird_until = NULL WHERE id = ?`, eventId);
 
     const checkout = await startCheckout({
       email: "group-payer@example.com", name: "Group Payer", phone: "087 555 6500", occurrenceIds: [],

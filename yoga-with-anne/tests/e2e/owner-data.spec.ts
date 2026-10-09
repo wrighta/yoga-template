@@ -200,12 +200,14 @@ test("teacher creates a block + bundle; student books the block end-to-end", asy
   await page.locator('#block input[name="startDate"]').fill(startDate);
   await page.locator('#block input[name="weeks"]').fill("4");
   await page.locator('#block input[name="price"]').fill("80.00");
+  await expect(page.locator('#block input[name="dropInsEnabled"]')).not.toBeChecked();
   await page.getByRole("button", { name: "Publish block" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
 
   // public classes page advertises the block
   await gotoHydrated(page, "/classes");
   await expect(page.getByText("E2E Strong Yoga Block").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "E2E Strong Yoga Block" })).toHaveCount(1);
   const blockCard = page.locator("article").filter({ hasText: "E2E Strong Yoga Block" }).first();
   await expect(blockCard).toContainText("Days");
   await expect(blockCard).toContainText("Tuesday and Thursday");
@@ -238,6 +240,15 @@ test("teacher creates a block + bundle; student books the block end-to-end", asy
   // confirmation lists every date of the block
   const dates = await page.locator("text=/Oct|Nov/").count();
   expect(dates).toBeGreaterThan(4);
+
+  // Drop-ins can be enabled later without changing the block offer.
+  await gotoHydrated(page, "/admin/classes");
+  await page.locator("details summary").filter({ hasText: "Edit offering" }).click();
+  await page.locator('input[name="dropInsEnabled"]').check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await gotoHydrated(page, "/classes");
+  expect(await page.getByRole("heading", { name: "E2E Strong Yoga Block" }).count()).toBeGreaterThan(1);
 });
 
 test("teacher can save a private draft block on a phone", async ({ page }) => {

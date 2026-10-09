@@ -40,16 +40,24 @@ export default async function AdminCreateClassesPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold text-forest-900">Create classes</h1>
-        <Link href="/admin/classes" className="min-h-[40px] inline-flex items-center rounded-full border border-forest-800/30 px-4 py-2 text-sm font-semibold text-forest-800 hover:bg-sage-100">
-          ← Back to Schedule
+      </div>
+      <div role="tablist" aria-label="Classes and events" className="inline-flex rounded-full border border-oat-300 bg-white p-1">
+        <Link href="/admin/classes/new" role="tab" aria-selected="true" className="min-h-[40px] rounded-full bg-forest-800 px-5 py-2 text-sm font-semibold text-white">
+          Create new
+        </Link>
+        <Link href="/admin/classes?view=blocks" role="tab" aria-selected="false" className="min-h-[40px] rounded-full px-5 py-2 text-sm font-semibold text-forest-800 hover:bg-sage-100">
+          View &amp; edit blocks, workshops &amp; retreats
+        </Link>
+        <Link href="/admin/classes?view=classes" role="tab" aria-selected="false" className="min-h-[40px] rounded-full px-5 py-2 text-sm font-semibold text-forest-800 hover:bg-sage-100">
+          Individual classes
         </Link>
       </div>
       {sp.error ? <Alert kind="error">{sp.error}</Alert> : null}
       {sp.saved ? <Alert kind="success">Saved.</Alert> : null}
       {sp.created ? <Alert kind="success">{sp.created === "1" ? "Class created." : `${sp.created} classes created.`}</Alert> : null}
       <Alert kind="info">
-        Create a <strong>block of classes</strong> - the most common choice - or a single class. Choose whether to save
-        each offering as a draft or publish it now. Bundles combine blocks you&apos;ve already made.
+        Create a block and choose whether students book the whole block or can also book individual dates. You can also
+        create a workshop, retreat, single class, or a bundle of blocks.
       </Alert>
 
       <details className="rounded-[var(--radius-card)] border border-oat-200 bg-white" id="block">
@@ -115,9 +123,9 @@ export default async function AdminCreateClassesPage({
         <summary className="cursor-pointer px-6 py-5 text-sm font-semibold text-bark-700">More class options</summary>
         <div className="space-y-4 border-t border-oat-100 p-6">
       <details className="rounded-lg border border-oat-200" id="series">
-        <summary className="cursor-pointer px-4 py-3 font-semibold text-forest-900">Create a recurring series</summary>
+        <summary className="cursor-pointer px-4 py-3 font-semibold text-forest-900">Create a standalone weekly drop-in schedule</summary>
         <div className="border-t border-oat-100 p-4">
-        <p className="mb-4 text-sm text-bark-500">Use this for a standalone weekly schedule where students book individual dates.</p>
+        <p className="mb-4 text-sm text-bark-500">Use this only when you want students to book weekly class dates individually, without selling them as a block.</p>
           <SeriesCreateForm
             classTypes={classTypes.map((t) => ({ id: Number(t.id), name: String(t.name) }))}
             venues={venues.map((v) => ({ id: Number(v.id), name: String(v.name) }))}
@@ -171,11 +179,14 @@ export default async function AdminCreateClassesPage({
         </div>
       </details>
 
-      {/* Series template management */}
+      {/* Advanced weekly schedule management */}
       <details className="rounded-lg border border-oat-200 bg-white" id="series-manage">
-        <summary className="cursor-pointer px-4 py-3 font-semibold text-forest-900">Manage existing series</summary>
+        <summary className="cursor-pointer px-4 py-3 font-semibold text-forest-900">Advanced weekly schedule tools</summary>
         <div className="border-t border-oat-100 p-4">
-        <p className="text-sm text-bark-500">A series is the weekly pattern. Changes here never change classes that already exist.</p>
+        <p className="text-sm text-bark-500">
+          These tools are for standalone weekly drop-in schedules. You do not need them for a block; its dates and
+          booking options are managed together from Schedule.
+        </p>
         <div className="mt-4 space-y-4">
           {series.map((sr) => {
             const weekdays = JSON.parse(sr.weekdays) as number[];

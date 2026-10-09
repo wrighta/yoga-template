@@ -41,7 +41,33 @@ export function WorkshopForm({
   const [dailyStart, setDailyStart] = useState("");
   const [dailyEnd, setDailyEnd] = useState("");
   const [pending, setPending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const retreatDayList = useMemo(() => retreatDates(startDate, endDate), [startDate, endDate]);
+  const singleDay = !!startDate && startDate === endDate;
+  const multiDay = retreatDayList.length > 1;
+
+  // Validate in the browser so a mistake never costs the teacher the text they have typed.
+  function validateBeforeSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget);
+    const bad = (start: FormDataEntryValue | null, end: FormDataEntryValue | null) => !start || !end || String(start) >= String(end);
+    let message: string | null = null;
+    if (endDate && startDate && endDate < startDate) {
+      message = "The end date can't be before the start date.";
+    } else if (kind === "workshop" && bad(data.get("workshopStartTime"), data.get("workshopEndTime"))) {
+      message = "The end time must be after the start time. Times use the 24-hour clock, e.g. 13:00 to 16:00.";
+    } else if (kind === "retreat" && !differentTimes && bad(data.get("dailyStartTime"), data.get("dailyEndTime"))) {
+      message = "The end time must be after the start time. Times use the 24-hour clock, e.g. 13:00 to 16:00 (4:00 would be 4 AM).";
+    } else if (kind === "retreat" && differentTimes) {
+      const starts = data.getAll("dailyTimeStart");
+      const ends = data.getAll("dailyTimeEnd");
+      if (starts.some((start, index) => bad(start, ends[index]))) message = "Each day's end time must be after its start time (24-hour clock).";
+    }
+    setFormError(message);
+    if (message) {
+      event.preventDefault();
+      event.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   const dateFormatter = new Intl.DateTimeFormat("en-IE", { weekday: "short", day: "numeric", month: "short" });
   const rangeLabel = startDate && endDate && endDate >= startDate
@@ -51,8 +77,8 @@ export function WorkshopForm({
     : "";
 
   return (
-    <form action={createSmartWorkshopAction} className="grid gap-4 sm:grid-cols-2">
-      <Field label="Name (students see this)" name="name" required placeholder="e.g. Slow Flow Sunday Reset" className="sm:col-span-2" />
+    <form action={createSmartWorkshopAction} onSubmit={validateBeforeSubmit} className="grid gap-4 sm:grid-cols-2">
+      {formError ? <div className="sm:col-span-2"><Alert kind="error">{formError}</Alert></div> : null}      <Field label="Name (students see this)" name="name" required placeholder="e.g. Slow Flow Sunday Reset" className="sm:col-span-2" />
       <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900">
         Type
         <select name="kind" value={kind} onChange={(event) => setKind(event.target.value as "workshop" | "retreat")} className="rounded-xl border border-oat-300 px-4 py-3">
@@ -75,8 +101,8 @@ export function WorkshopForm({
         newPlaceholder="e.g. Mary Byrne"
       />
 
-      <Field label="Start date" name="startDate" type="date" value={startDate} onChange={setStartDate} required />
-      <Field label="End date" name="endDate" type="date" value={endDate} onChange={setEndDate} required />
+      <Field label="Start date" name="startDate" type="date" value={startDate} onChange={(value) => { setStartDate(value); if (!endDate || endDate < value) setEndDate(value); }} required />
+      <Field label="End date" name="endDate" type="date" value={endDate} onChange={setEndDate} required hint="Same as the start date for a one-day event." />
       {kind === "workshop" ? (
         <fieldset className="grid gap-4 rounded-lg border border-oat-200 p-4 sm:col-span-2 sm:grid-cols-2">
           <legend className="px-1 text-sm font-semibold text-forest-900">Workshop hours</legend>
@@ -86,15 +112,18 @@ export function WorkshopForm({
       ) : null}
       {kind === "retreat" ? (
         <fieldset className="grid gap-4 rounded-lg border border-oat-200 p-4 sm:col-span-2 sm:grid-cols-2">
-          <legend className="px-1 text-sm font-semibold text-forest-900">Daily retreat times</legend>
-          <label className="flex items-center gap-2 text-sm font-medium text-forest-900 sm:col-span-2">
-            <input type="checkbox" name="differentTimes" checked={differentTimes} onChange={(event) => setDifferentTimes(event.target.checked)} className="h-5 w-5 accent-forest-800" />
-            Different start and end times each day
-          </label>
-          {!differentTimes ? (
+          <legend className="px-1 text-sm font-semibold text-forest-900">{multiDay ? "Daily retreat times" : "Retreat hours"}</legend>
+          {multiDay ? (
+            <label className="flex items-center gap-2 text-sm font-medium text-forest-900 sm:col-span-2">
+              <input type="checkbox" name="differentTimes" checked={differentTimes} onChange={(event) => setDifferentTimes(event.target.checked)} className="h-5 w-5 accent-forest-800" />
+              Different start and end times each day
+            </label>
+          ) : null}
+          {!differentTimes || !multiDay ? (
             <>
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900">Start time each day<input type="time" name="dailyStartTime" value={dailyStart} onChange={(event) => setDailyStart(event.target.value)} required className="rounded-xl border border-oat-300 px-4 py-3" /></label>
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900">End time each day<input type="time" name="dailyEndTime" value={dailyEnd} onChange={(event) => setDailyEnd(event.target.value)} required className="rounded-xl border border-oat-300 px-4 py-3" /></label>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900">{multiDay ? "Start time each day" : "Start time"}<input type="time" name="dailyStartTime" value={dailyStart} onChange={(event) => setDailyStart(event.target.value)} required className="rounded-xl border border-oat-300 px-4 py-3" /></label>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900">{multiDay ? "End time each day" : "End time"}<input type="time" name="dailyEndTime" value={dailyEnd} onChange={(event) => setDailyEnd(event.target.value)} required className="rounded-xl border border-oat-300 px-4 py-3" /></label>
+              <p className="text-xs text-bark-500 sm:col-span-2">24-hour clock, e.g. 16:00 is 4 PM.</p>
             </>
           ) : retreatDayList.length > 0 ? (
             <div className="space-y-3 sm:col-span-2">
@@ -128,8 +157,13 @@ export function WorkshopForm({
       </div>
 
       <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900 sm:col-span-2">
-        Itinerary and details (shown on the public event page)
-        <textarea name="description" rows={4} className="rounded-xl border border-oat-300 px-4 py-3" placeholder="Describe the event, daily itinerary, and what to expect…" />
+        Short teaser (shown on the Workshops &amp; Retreats listing)
+        <textarea name="summary" rows={2} maxLength={300} className="rounded-xl border border-oat-300 px-4 py-3 font-normal" placeholder="One or two sentences to catch interest…" />
+      </label>
+
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-forest-900 sm:col-span-2">
+        Itinerary and details (shown on the event page under &ldquo;About this {kind}&rdquo;)
+        <textarea name="description" rows={6} className="rounded-xl border border-oat-300 px-4 py-3 font-normal" placeholder="Describe the event, the itinerary, and what to expect…" />
       </label>
 
       <div className="sm:col-span-2">

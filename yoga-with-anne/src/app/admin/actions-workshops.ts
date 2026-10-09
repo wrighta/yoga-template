@@ -28,13 +28,15 @@ export async function createSmartWorkshopAction(formData: FormData) {
   const earlyBirdPrice = earlyBirdRaw ? parseEuroInputToCents(earlyBirdRaw) : null;
   const earlyBirdUntil = String(formData.get("earlyBirdUntil") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
+  const summary = String(formData.get("summary") ?? "").trim().slice(0, 300) || null;
   const imageMediaId = Number(formData.get("imageMediaId")) || null;
   let dailyTimes: string | null = null;
   const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  const timeError = `Enter+valid+${kind === "retreat" ? "retreat" : "workshop"}+start+and+end+times.+Times+use+the+24-hour+clock+and+the+end+must+be+after+the+start+(for+example+13:00+to+16:00)`;
   if (kind === "workshop") {
     const start = String(formData.get("workshopStartTime") ?? "");
     const end = String(formData.get("workshopEndTime") ?? "");
-    if (!validTime(start) || !validTime(end) || start >= end) redirect("/admin/classes/new?error=Enter+valid+workshop+start+and+end+times");
+    if (!validTime(start) || !validTime(end) || start >= end) redirect(`/admin/classes/new?error=${timeError}`);
     dailyTimes = JSON.stringify({ mode: "same", start, end });
   }
   if (kind === "retreat") {
@@ -58,7 +60,7 @@ export async function createSmartWorkshopAction(formData: FormData) {
     } else {
       const start = String(formData.get("dailyStartTime") ?? "");
       const end = String(formData.get("dailyEndTime") ?? "");
-      if (!validTime(start) || !validTime(end) || start >= end) redirect("/admin/classes/new?error=Enter+valid+retreat+start+and+end+times");
+      if (!validTime(start) || !validTime(end) || start >= end) redirect(`/admin/classes/new?error=${timeError}`);
       dailyTimes = JSON.stringify({ mode: "same", start, end });
     }
   }
@@ -141,9 +143,9 @@ export async function createSmartWorkshopAction(formData: FormData) {
 
   // the workshop itself - a block with kind 'workshop'
   const blockRes = run(
-    `INSERT INTO class_blocks (series_id, name, start_date, end_date, price_cents, weekdays, kind, description, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,?)`,
-    seriesId, name, startDate, endDate, price, JSON.stringify([weekday]), kind, description, imageMediaId, earlyBirdPrice, earlyBirdUntil, dailyTimes, publicationStatus
+    `INSERT INTO class_blocks (series_id, name, start_date, end_date, price_cents, weekdays, kind, description, summary, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)`,
+    seriesId, name, startDate, endDate, price, JSON.stringify([weekday]), kind, description, summary, imageMediaId, earlyBirdPrice, earlyBirdUntil, dailyTimes, publicationStatus
   );
   audit("workshop.created", {
     actorType: "admin", actor: admin.email, entityType: "class_block", entityId: Number(blockRes.lastInsertRowid),

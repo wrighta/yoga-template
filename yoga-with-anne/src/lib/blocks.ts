@@ -20,6 +20,7 @@ export type ClassBlock = {
   weekdays: string | null; // JSON array; null = every series day
   kind: string; // 'block' | 'workshop'
   description: string | null;
+  summary: string | null;
   image_media_id: number | null;
   early_bird_price_cents: number | null;
   early_bird_until: string | null;
@@ -43,6 +44,16 @@ export function effectivePriceCents(block: {
     return block.early_bird_price_cents;
   }
   return block.price_cents;
+}
+
+/** Short card text: the teaser if set, otherwise a trimmed start of the details (for events created before teasers existed). */
+export function eventTeaser(block: { summary: string | null; description: string | null }, max = 200): string | null {
+  const summary = block.summary?.trim();
+  if (summary) return summary;
+  const details = block.description?.replace(/\s+/g, " ").trim();
+  if (!details) return null;
+  if (details.length <= max) return details;
+  return `${details.slice(0, max).replace(/\s+\S*$/, "")}…`;
 }
 
 export type BlockDate = {
@@ -138,7 +149,7 @@ function getSettingsSync() {
 }
 
 export function getBlock(id: number): ClassBlock | undefined {
-  return get<ClassBlock>(`SELECT id, series_id, name, start_date, end_date, price_cents, weekdays, kind, description, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status FROM class_blocks WHERE id = ?`, id);
+  return get<ClassBlock>(`SELECT id, series_id, name, start_date, end_date, price_cents, weekdays, kind, description, summary, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status FROM class_blocks WHERE id = ?`, id);
 }
 
 /** Public/admin view of a block with live availability. */
@@ -223,9 +234,9 @@ export async function blockView(block: ClassBlock): Promise<BlockView> {
 }
 
 export async function listActiveBlockViews(): Promise<BlockView[]> {
-  const blocks = all<ClassBlock>(`SELECT id, series_id, name, start_date, end_date, price_cents, weekdays, kind, description, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status FROM class_blocks WHERE active = 1 AND publication_status = 'published' AND kind = 'block' ORDER BY start_date ASC`);
+  const blocks = all<ClassBlock>(`SELECT id, series_id, name, start_date, end_date, price_cents, weekdays, kind, description, summary, image_media_id, early_bird_price_cents, early_bird_until, daily_times_json, active, publication_status FROM class_blocks WHERE active = 1 AND publication_status = 'published' AND kind = 'block' ORDER BY start_date ASC`);
   const views = await Promise.all(blocks.map(blockView));
-  return views.filter((v) => v.onSale && v.seriesPublicationStatus === "published");
+  return views.filter((v) => v.onSale);
 }
 
 // ---------------- Bundles ----------------
@@ -255,13 +266,13 @@ export async function getBundleView(id: number): Promise<BundleView | null> {
     blocks: views,
     classCount: views.reduce((s, v) => s + v.classCount, 0),
     onSale: views.length >= 2 && views.every((v) => v.onSale || v.classCount === 0 ? v.onSale : v.onSale),
-    published: bundle.publication_status === "published" && views.every((v) => v.publication_status === "published" && v.seriesPublicationStatus === "published"),
+    published: bundle.publication_status === "published" && views.every((v) => v.publication_status === "published"),
   };
 }
 
 export async function listWorkshopViews(): Promise<BlockView[]> {
   const blocks = all<ClassBlock>(
-    `SELECT cb.id, cb.series_id, cb.name, cb.start_date, cb.end_date, cb.price_cents, cb.weekdays, cb.kind, cb.description, cb.image_media_id, cb.early_bird_price_cents, cb.early_bird_until, cb.daily_times_json, cb.active, cb.publication_status
+    `SELECT cb.id, cb.series_id, cb.name, cb.start_date, cb.end_date, cb.price_cents, cb.weekdays, cb.kind, cb.description, cb.summary, cb.image_media_id, cb.early_bird_price_cents, cb.early_bird_until, cb.daily_times_json, cb.active, cb.publication_status
      FROM class_blocks cb JOIN class_series cs ON cs.id = cb.series_id
     WHERE cb.active = 1 AND cb.publication_status = 'published' AND cs.publication_status = 'published' AND cb.kind IN ('workshop','retreat') ORDER BY cb.start_date ASC`
   );

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const { getBlockView, getBundleView } = await import("@/lib/blocks");
     if (blockId) {
       const view = await getBlockView(blockId);
-      if (!view || !view.active || !view.onSale || view.publication_status !== "published" || view.seriesPublicationStatus !== "published") return NextResponse.json({ error: "This block is not available for booking." }, { status: 404 });
+      if (!view || !view.active || !view.onSale || view.publication_status !== "published") return NextResponse.json({ error: "This block is not available for booking." }, { status: 404 });
       const bookable = view.dates.filter((d) => d.status === "scheduled" && new Date(d.startsAt) > new Date());
       const isEvent = view.kind === "workshop" || view.kind === "retreat";
       const attendeeCount = isEvent && Number.isInteger(body.attendeeCount) ? Math.max(1, Math.min(20, Number(body.attendeeCount))) : 1;
@@ -36,12 +36,12 @@ export async function POST(req: Request) {
         const remaining = eventDate.capacity - confirmedCount(eventDate.occurrenceId) - activeHoldCount(eventDate.occurrenceId);
         if (attendeeCount > remaining) return NextResponse.json({ error: `Only ${remaining} place${remaining === 1 ? "" : "s"} remain for this event.` }, { status: 409 });
       }
-      const totalCents = view.price_cents * attendeeCount;
+      const totalCents = view.effectivePrice * attendeeCount;
       const per = Math.floor(totalCents / Math.max(1, bookable.length));
       const rem = totalCents - per * bookable.length;
       const result = {
         seats: bookable.map((d, i) => ({ occurrenceId: d.occurrenceId, source: "paid", priceCents: per + (i < rem ? 1 : 0) })),
-        lines: [{ kind: "block", description: isEvent ? `${view.name} - ${attendeeCount} attendee${attendeeCount === 1 ? "" : "s"}` : `${view.name} - ${bookable.length} classes`, qty: attendeeCount, unitCents: view.price_cents, totalCents }],
+        lines: [{ kind: "block", description: isEvent ? `${view.name} - ${attendeeCount} attendee${attendeeCount === 1 ? "" : "s"}` : `${view.name} - ${bookable.length} classes`, qty: attendeeCount, unitCents: view.effectivePrice, totalCents }],
         subtotalCents: totalCents,
         discountCents: 0,
         totalCents,
@@ -49,17 +49,25 @@ export async function POST(req: Request) {
         alternatives: [],
       };
       const datesHtml = bookable.map((d) => d.displayDate).join(" · ");
+      const { fmtDate } = await import("@/lib/tz");
+      const eventTz = (await getSettings()).timezone;
+      const eventStartLabel = fmtDate(`${view.start_date}T12:00:00.000Z`, eventTz, true);
+      const eventEndLabel = fmtDate(`${view.end_date}T12:00:00.000Z`, eventTz, true);
+      const { eventTeaser } = await import("@/lib/blocks");
       return NextResponse.json({
         result,
           blockMode: {
             name: view.name,
             kind: view.kind,
-            description: view.description,
+            earlyBird: view.isEarlyBird
+              ? { basePriceCents: view.price_cents, until: fmtDate(`${view.early_bird_until}T12:00:00.000Z`, eventTz, true) }
+              : null,
+            description: isEvent ? eventTeaser(view, 400) : view.description,
             venueName: view.venueName,
             classCount: view.classCount,
             dates: isEvent ? "" : datesHtml,
             rangeLabel: isEvent
-              ? `${view.start_date} – ${view.end_date}`
+              ? eventStartLabel === eventEndLabel ? eventStartLabel : `${eventStartLabel} – ${eventEndLabel}`
               : bookable.length ? `${bookable[0].displayDate} – ${bookable[bookable.length - 1].displayDate}` : "",
             remainingCapacity: isEvent && bookable[0]
               ? bookable[0].capacity - confirmedCount(bookable[0].occurrenceId) - activeHoldCount(bookable[0].occurrenceId)

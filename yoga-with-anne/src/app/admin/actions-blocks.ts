@@ -30,6 +30,7 @@ export async function createSmartBlockAction(formData: FormData) {
   const capacity = Math.max(1, Number(formData.get("capacity") ?? 12));
   const price = parseEuroInputToCents(String(formData.get("price") ?? ""));
   const publicationStatus = formData.get("publicationStatus") === "published" ? "published" : "draft";
+  const dropInsEnabled = formData.get("dropInsEnabled") === "on";
   const startTime = String(formData.get("startTime") ?? "19:30");
   const endTime = String(formData.get("endTime") ?? "20:30");
 
@@ -106,12 +107,13 @@ export async function createSmartBlockAction(formData: FormData) {
     redirect("/admin/classes/new?error=Choose+or+type+a+class+type");
   }
 
-  // auto-create the recurring series (internal detail - the teacher never sees this step)
+  // The schedule is public only when the teacher also offers individual dates.
+  const schedulePublicationStatus = publicationStatus === "published" && dropInsEnabled ? "published" : "draft";
   const settings = await getSettings();
   const res = run(
     `INSERT INTO class_series (title, class_type_id, venue_id, instructor_id, weekdays, start_time, end_time, capacity, waitlist_enabled, publication_status)
      VALUES (?,?,?,?,?,?,?,?,1,?)`,
-    name, classTypeId, venueId, instructorId, JSON.stringify(weekdays), startTime, endTime, capacity, publicationStatus
+    name, classTypeId, venueId, instructorId, JSON.stringify(weekdays), startTime, endTime, capacity, schedulePublicationStatus
   );
   const seriesId = Number(res.lastInsertRowid);
 
@@ -125,7 +127,7 @@ export async function createSmartBlockAction(formData: FormData) {
     run(
       `INSERT OR IGNORE INTO class_occurrences (series_id, class_type_id, venue_id, instructor_id, title, starts_at, ends_at, capacity, waitlist_enabled, publication_status, source)
        VALUES (?,?,?,?,?,?,?,?,1,?,'series')`,
-      seriesId, classTypeId, venueId, instructorId, name, s.startsAt, s.endsAt, capacity, publicationStatus
+      seriesId, classTypeId, venueId, instructorId, name, s.startsAt, s.endsAt, capacity, schedulePublicationStatus
     );
   }
 

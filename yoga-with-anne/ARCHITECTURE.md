@@ -45,6 +45,7 @@ Key constraints:
 - **Optional pricing features are per installation**: class passes and the multi-date drop-in discount are disabled unless their Super Admin settings are enabled. Existing pass-credit entitlements remain redeemable when new pass sales are disabled.
 - **Homepage composition is per installation**: the Super Admin can change visibility and visual order for the existing prepared sections; missing or malformed layout settings fall back to the shipped defaults.
 - **Previews do not publish settings**: draft pages and candidate homepage palettes render only for a Super Admin session, are marked noindex, and do not mutate public navigation or saved appearance settings.
+- **Block-only sales do not publish drop-ins**: a class block can be published and booked as one offering while its underlying class dates remain unpublished from individual-class browsing. If individual drop-ins are enabled, those dates become public; both booking paths share the same per-date capacity.
 - **Retreat times are descriptive metadata**: `class_blocks.daily_times_json` stores shared daily hours or per-date hours. Inventory, capacity, and booking remain a single date-span event slot.
 - **Required policies fail closed**: any `requires_acceptance` policy that is not published blocks every checkout path; accepted slug+version rows are recorded on payment.
 - **Order lifecycle (incl. late payments)**:

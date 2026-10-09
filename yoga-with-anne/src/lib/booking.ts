@@ -160,7 +160,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutOutco
 
   // ---------- Whole-block / bundle purchase ----------
   if (input.blockId || input.bundleId) {
-    const { getBlock, getBundleView, blockDates, bundleOccurrences } = await import("./blocks");
+    const { getBlock, getBundleView, blockDates, bundleOccurrences, effectivePriceCents } = await import("./blocks");
     let seats: PricingSeat[] = [];
     let lines: { kind: "block" | "bundle"; description: string; qty: number; unitCents: number; totalCents: number; productId?: number; occurrenceId?: number; passId?: number; membershipId?: number }[] = [];
     let total = 0;
@@ -170,8 +170,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutOutco
 
     if (input.blockId) {
       const block = getBlock(input.blockId);
-      const series = block ? get<{ publication_status: string }>(`SELECT publication_status FROM class_series WHERE id = ?`, block.series_id) : null;
-      if (!block || !block.active || block.publication_status !== "published" || series?.publication_status !== "published") {
+      if (!block || !block.active || block.publication_status !== "published") {
         return { ok: false, error: "This block is not available for booking." };
       }
       const isEvent = block.kind === "workshop" || block.kind === "retreat";
@@ -186,7 +185,8 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutOutco
       }
       const dates = blockDates(block).filter((d) => d.status === "scheduled" && d.startsAt > now);
       if (dates.length === 0) return { ok: false, error: "This block has finished." };
-      const totalForBlock = block.price_cents * seatCount;
+      const unitPrice = effectivePriceCents(block, now);
+      const totalForBlock = unitPrice * seatCount;
       const shares = distributeCents(totalForBlock, dates.length);
       seats = dates.map((d, i) => ({
         occurrenceId: d.occurrenceId,
@@ -200,7 +200,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutOutco
       label = isEvent
         ? `${block.name} - ${seatCount} attendee${seatCount === 1 ? "" : "s"}`
         : `${block.name} - ${dates.length} class${dates.length === 1 ? "" : "es"}`;
-      lines = [{ kind: "block", description: label, qty: seatCount, unitCents: block.price_cents, totalCents: total }];
+      lines = [{ kind: "block", description: label, qty: seatCount, unitCents: unitPrice, totalCents: total }];
     } else if (input.bundleId) {
       const bundle = await (await import("./blocks")).getBundleView(input.bundleId);
       if (!bundle || !bundle.active || !bundle.published) return { ok: false, error: "This bundle is not available for booking." };
@@ -1323,7 +1323,7 @@ export async function adminCreateBlockBooking(input: {
 }): Promise<{ ok: boolean; orderId?: number; bookingCount?: number; seatCount?: number; eventBooking?: boolean; error?: string }> {
   if (!!input.blockId === !!input.bundleId) return { ok: false, error: "Choose one block or bundle." };
 
-  const { getBlock, getBundleView, blockDates, bundleOccurrences } = await import("./blocks");
+  const { getBlock, getBundleView, blockDates, bundleOccurrences, effectivePriceCents } = await import("./blocks");
   const now = nowIso();
   let occurrenceIds: number[] = [];
   let totalCents = 0;
@@ -1336,8 +1336,7 @@ export async function adminCreateBlockBooking(input: {
 
   if (input.blockId) {
     const block = getBlock(input.blockId);
-    const series = block ? get<{ publication_status: string }>(`SELECT publication_status FROM class_series WHERE id = ?`, block.series_id) : null;
-    if (!block || !block.active || block.publication_status !== "published" || series?.publication_status !== "published") {
+    if (!block || !block.active || block.publication_status !== "published") {
       return { ok: false, error: "This block is not available for booking." };
     }
     if (block.kind === "workshop" || block.kind === "retreat") {
@@ -1350,7 +1349,7 @@ export async function adminCreateBlockBooking(input: {
     occurrenceIds = blockDates(block)
       .filter((date) => date.status === "scheduled" && date.startsAt > now)
       .map((date) => date.occurrenceId);
-    totalCents = block.price_cents * seatCount;
+    totalCents = effectivePriceCents(block, now) * seatCount;
     itemKind = "block";
     description = `${block.name} block`;
   } else {
@@ -1372,7 +1371,7 @@ export async function adminCreateBlockBooking(input: {
       )
     : [];
   if (dateRows.length === 0) return { ok: false, error: "This offering has no upcoming dates." };
-  if (dateRows.length !== occurrenceIds.length || dateRows.some((date) => date.status !== "scheduled" || date.publication_status !== "published")) {
+  if (dateRows.length !== occurrenceIds.length || dateRows.some((date) => date.status !== "scheduled")) {
     return { ok: false, error: "One of the offering dates is no longer available." };
   }
 
