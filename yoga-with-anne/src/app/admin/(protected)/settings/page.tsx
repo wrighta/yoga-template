@@ -44,6 +44,22 @@ export default async function AdminSettingsPage({
             <Field label="Facebook URL (optional)" name="facebook_url" defaultValue={s.facebook_url} />
             <Field label="Instagram URL (optional)" name="instagram_url" defaultValue={s.instagram_url} />
             <Field label="Homepage announcement (leave blank to hide the bar)" name="announcement" defaultValue={s.announcement} className="sm:col-span-2" />
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label htmlFor="no_classes_notice" className="text-sm font-semibold text-forest-900">
+                Notice when no classes are scheduled (optional)
+              </label>
+              <textarea
+                id="no_classes_notice"
+                name="no_classes_notice"
+                rows={2}
+                defaultValue={s.no_classes_notice}
+                className="rounded-xl border border-oat-300 bg-white px-4 py-3 text-bark-900"
+                placeholder="e.g. I am currently recovering from an injury and classes are paused until November. Message me on WhatsApp with any questions!"
+              />
+              <p className="text-xs text-bark-500">
+                Displayed on the homepage upcoming classes section and on the classes schedule page when there are no scheduled classes. Leave blank for the standard message.
+              </p>
+            </div>
             <Field label="Tax note shown on the prices page (see your accountant - leave blank if unsure)" name="tax_note" defaultValue={s.tax_note} className="sm:col-span-2" />
           </div>
 

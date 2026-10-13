@@ -4,7 +4,7 @@ import { ButtonLink, Card, SectionHeading, StateBadge } from "@/components/ui";
 import { ClassCard, type ClassCardData } from "@/components/class-card";
 import { listUpcoming } from "@/lib/schedule";
 import { getContent, getPublishedFaqs, getPublishedTestimonials } from "@/lib/content";
-import { getSettings } from "@/lib/settings";
+import { getSettings, whatsappLink } from "@/lib/settings";
 import { all } from "@/db";
 import { fmtEuro } from "@/lib/money";
 import { NewsletterForm } from "./newsletter-form";
@@ -67,6 +67,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getHomepageSections(),
   ]);
   const heroPhoto = settings.hero_media_id ? getMedia(settings.hero_media_id) : null;
+  const portraitPhoto = settings.portrait_media_id ? getMedia(settings.portrait_media_id) : null;
   const [venue, multiDateActive, services] = await Promise.all([getPrimaryVenue(), isMultiDateDiscountActive(), listActiveServices()]);
   const whatToExpect = content.what_to_expect as unknown as { intro: string; items: string[][] } | undefined;
   const whoSuits = content.who_suits as unknown as { intro: string; items: string[][] } | undefined;
@@ -248,11 +249,38 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             See the full schedule →
           </Link>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {cardData.slice(0, 6).map((c) => (
-            <ClassCard key={c.id} data={c} />
-          ))}
-        </div>
+        {cardData.length === 0 ? (
+          <div className="mt-8 rounded-[var(--radius-card)] border border-oat-200 bg-white p-8 text-center sm:p-10">
+            <p className="text-lg font-medium text-bark-800">
+              {settings.no_classes_notice || "No classes currently scheduled."}
+            </p>
+            <p className="mt-2 text-sm text-bark-500">
+              {settings.no_classes_notice ? "Check back soon, or get in touch below if you have any questions." : "New dates are added regularly - message Anne on WhatsApp or check back soon."}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <a
+                href={whatsappLink(settings)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-forest-800 px-6 py-2.5 text-sm font-semibold text-white hover:bg-forest-900"
+              >
+                Message on WhatsApp
+              </a>
+              <Link
+                href="/contact"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-forest-800/20 bg-white px-6 py-2.5 text-sm font-semibold text-forest-900 hover:bg-forest-50"
+              >
+                Contact Anne
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {cardData.slice(0, 6).map((c) => (
+              <ClassCard key={c.id} data={c} />
+            ))}
+          </div>
+        )}
       </section>}
 
       {/* What to expect */}
@@ -322,12 +350,23 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {sectionVisible("meet") && <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="meet" style={{ order: sectionOrder("meet") }}>
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="relative">
+            {portraitPhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/media/${portraitPhoto.id}`}
+                alt={portraitPhoto.alt || "Anne Wright"}
+                width={480}
+                height={576}
+                className="mx-auto aspect-[5/6] w-full max-w-xs rounded-[var(--radius-card)] border border-oat-200 object-cover"
+              />
+            ) : (
             <svg viewBox="0 0 300 360" role="img" aria-label="Decorative illustration - portrait placeholder" className="mx-auto w-full max-w-xs rounded-[var(--radius-card)]">
               <rect width="300" height="360" rx="18" fill="var(--t100)" />
               <circle cx="150" cy="130" r="52" fill="var(--b800)" />
               <path d="M60 320 Q 150 220 240 320 L 240 360 L 60 360 Z" fill="var(--b800)" />
               <path d="M40 90 Q 150 30 260 90" stroke="var(--a500)" strokeWidth="6" fill="none" strokeLinecap="round" />
             </svg>
+            )}
           </div>
           <div>
             <SectionHeading eyebrow="Meet Anne" title="A teacher who meets you where you are" />
@@ -361,7 +400,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               ) : null}
             </ul>
             <div className="mt-6 flex flex-wrap gap-4">
-              {venue?.map_url ? <ButtonLink href={venue.map_url} variant="secondary">Open in Google Maps</ButtonLink> : null}
+              {venue?.map_url ? <ButtonLink href={venue.map_url} variant="secondary" target="_blank" rel="noopener noreferrer">Open in Google Maps</ButtonLink> : null}
               <ButtonLink href="/contact">Contact &amp; directions</ButtonLink>
             </div>
           </div>
@@ -372,7 +411,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {venue?.postcode ? (<><br />{venue.postcode}</>) : null}
             </p>
             {venue?.map_url ? (
-              <ButtonLink href={venue.map_url} variant="secondary">Open in Google Maps</ButtonLink>
+              <ButtonLink href={venue.map_url} variant="secondary" target="_blank" rel="noopener noreferrer">Open in Google Maps</ButtonLink>
             ) : null}
           </div>
         </div>

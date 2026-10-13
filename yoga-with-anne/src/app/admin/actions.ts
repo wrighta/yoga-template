@@ -710,6 +710,7 @@ export async function saveSettingsAction(formData: FormData) {
     ["facebook_url", String(formData.get("facebook_url") ?? "")],
     ["instagram_url", String(formData.get("instagram_url") ?? "")],
     ["announcement", String(formData.get("announcement") ?? "")],
+    ["no_classes_notice", String(formData.get("no_classes_notice") ?? "")],
     ["tax_note", String(formData.get("tax_note") ?? "")],
     ["cancellation_cutoff_hours", Math.max(0, Number(formData.get("cancellation_cutoff_hours") ?? settings.cancellation_cutoff_hours))],
     ["hold_minutes", Math.max(1, Number(formData.get("hold_minutes") ?? settings.hold_minutes))],

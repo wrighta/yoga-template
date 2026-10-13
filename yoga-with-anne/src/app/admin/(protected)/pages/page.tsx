@@ -2,12 +2,12 @@ import { all } from "@/db";
 import { Alert, Card } from "@/components/ui";
 import { requireSuperAdminPage } from "@/lib/auth";
 import { listMedia } from "@/lib/media";
+import { MediaPicker, type PickerMedia } from "@/components/media-picker";
 import { deleteNavigationItemAction, deleteSitePageAction, publishSitePageAction, saveNavigationItemAction, saveSitePageAction, saveSitePageDraftAction } from "@/app/admin/actions-pages";
 
 type PageRow = { id: number; slug: string; title: string; intro: string | null; hero_media_id: number | null; sections_json: string; status: "draft" | "published" };
 type NavRow = { id: number; placement: "primary" | "footer"; label: string; href: string; sort: number; active: number; page_id: number | null };
 type Section = { heading?: string; body?: string; imageMediaId?: number | null; buttonLabel?: string; buttonHref?: string };
-type ImageOption = { id: number; filename: string | null; alt: string };
 
 function parseSections(json: string): Section[] {
   try {
@@ -22,17 +22,15 @@ function Input({ id, label, name, value, required = false, type = "text", placeh
   return <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-forest-900">{label}<input id={id} name={name} type={type} defaultValue={value} required={required} placeholder={placeholder} className="w-full min-w-0 rounded-xl border border-oat-300 bg-white px-4 py-3 text-base" /></label>;
 }
 
-function ImageSelect({ id, name, label, value, media }: { id: string; name: string; label: string; value: number | null; media: ImageOption[] }) {
-  return <label htmlFor={id} className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-forest-900">{label}<select id={id} name={name} defaultValue={value ?? ""} className="w-full min-w-0 max-w-full rounded-xl border border-oat-300 px-4 py-3"><option value="">No image</option>{media.map((item) => <option key={item.id} value={item.id}>{item.filename || item.alt || `Image ${item.id}`} (#{item.id})</option>)}</select></label>;
-}
-
-function SectionFields({ section, prefix, media, order }: { section?: Section; prefix: string; media: ImageOption[]; order: number }) {
+function SectionFields({ section, prefix, media, order }: { section?: Section; prefix: string; media: PickerMedia[]; order: number }) {
   return (
     <fieldset className="grid gap-3 rounded-lg border border-oat-200 p-4 sm:grid-cols-2">
       <legend className="px-1 text-sm font-semibold text-bark-600">{prefix.replaceAll("-", " ")}</legend>
       <Input id={`${prefix}-order`} label="Display order" name="sectionOrder" type="number" value={String(order)} />
       <Input id={`${prefix}-heading`} label="Heading" name="sectionHeading" value={section?.heading ?? ""} />
-      <ImageSelect id={`${prefix}-image`} name="sectionImageId" label="Image" value={section?.imageMediaId ?? null} media={media} />
+      <div className="sm:col-span-2">
+        <MediaPicker name="sectionImageId" label="Section image (optional)" media={media} currentId={section?.imageMediaId ?? null} />
+      </div>
       <label htmlFor={`${prefix}-body`} className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-forest-900 sm:col-span-2">Text<textarea id={`${prefix}-body`} name="sectionBody" rows={3} defaultValue={section?.body ?? ""} className="w-full min-w-0 rounded-xl border border-oat-300 px-4 py-3" /></label>
       <Input id={`${prefix}-button-label`} label="Button label" name="sectionButtonLabel" value={section?.buttonLabel ?? ""} />
       <Input id={`${prefix}-button-href`} label="Button URL (internal)" name="sectionButtonHref" value={section?.buttonHref ?? ""} placeholder="/contact" />
@@ -49,7 +47,7 @@ export default async function AdminPagesPage({ searchParams }: { searchParams: P
     listMedia(),
   ]);
   const pageOptions = pages.map((page) => ({ id: page.id, slug: page.slug, title: page.title }));
-  const media = mediaRows.map(({ id, filename, alt }) => ({ id, filename, alt }));
+  const pickerMedia: PickerMedia[] = mediaRows.map(({ id, alt, mime }) => ({ id, alt, mime }));
 
   return (
     <div className="space-y-8">
@@ -74,12 +72,12 @@ export default async function AdminPagesPage({ searchParams }: { searchParams: P
                     <Input id={`page-${page.id}-slug`} label="URL slug" name="slug" value={page.slug} required />
                   </div>
                   <label htmlFor={`page-${page.id}-intro`} className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-forest-900">Introduction<textarea id={`page-${page.id}-intro`} name="intro" rows={2} defaultValue={page.intro ?? ""} className="w-full min-w-0 rounded-xl border border-oat-300 px-4 py-3" /></label>
-                  <ImageSelect id={`page-${page.id}-hero`} name="heroMediaId" label="Hero image" value={page.hero_media_id} media={media} />
+                  <MediaPicker name="heroMediaId" label="Hero image (optional)" media={pickerMedia} currentId={page.hero_media_id} help="Shown at the top of the custom page." />
                   <div className="space-y-3">
                     <h3 className="font-semibold text-forest-900">Sections, in display order</h3>
                     {Array.from({ length: Math.min(12, Math.max(3, sections.length + 3)) }, (_, index) => {
                       const prefix = `page-${page.id}-section-${index + 1}`;
-                      const fields = <SectionFields section={sections[index]} prefix={prefix} media={media} order={index + 1} />;
+                      const fields = <SectionFields section={sections[index]} prefix={prefix} media={pickerMedia} order={index + 1} />;
                       return index < sections.length ? <div key={index}>{fields}</div> : <details key={index} className="rounded-lg border border-dashed border-oat-300 p-3"><summary className="cursor-pointer text-sm font-semibold text-forest-900">Add section {index + 1}</summary><div className="mt-3">{fields}</div></details>;
                     })}
                   </div>
@@ -103,10 +101,10 @@ export default async function AdminPagesPage({ searchParams }: { searchParams: P
           <form action={saveSitePageAction} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2"><Input id="new-page-title" label="Page title" name="title" required /><Input id="new-page-slug" label="URL slug" name="slug" required placeholder="my-new-page" /></div>
             <label htmlFor="new-page-intro" className="flex min-w-0 flex-col gap-1.5 text-sm font-semibold text-forest-900">Introduction<textarea id="new-page-intro" name="intro" rows={2} className="w-full min-w-0 rounded-xl border border-oat-300 px-4 py-3" /></label>
-            <ImageSelect id="new-page-hero" name="heroMediaId" label="Hero image" value={null} media={media} />
+            <MediaPicker name="heroMediaId" label="Hero image (optional)" media={pickerMedia} currentId={null} help="Shown at the top of the custom page." />
             {Array.from({ length: 12 }, (_, index) => {
               const prefix = `new-page-section-${index + 1}`;
-              const fields = <SectionFields prefix={prefix} media={media} order={index + 1} />;
+              const fields = <SectionFields prefix={prefix} media={pickerMedia} order={index + 1} />;
               return index < 3 ? <div key={index}>{fields}</div> : <details key={index} className="rounded-lg border border-dashed border-oat-300 p-3"><summary className="cursor-pointer text-sm font-semibold text-forest-900">Add section {index + 1}</summary><div className="mt-3">{fields}</div></details>;
             })}
             <div className="flex gap-3"><button formAction={saveSitePageDraftAction} className="min-h-11 rounded-full border border-oat-300 px-5 text-sm font-semibold text-forest-900">Save draft</button><button formAction={publishSitePageAction} className="min-h-11 rounded-full bg-forest-800 px-5 text-sm font-semibold text-white">Publish</button></div>

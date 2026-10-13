@@ -9,9 +9,11 @@ import { startCheckoutAction, type CheckoutState } from "../actions";
 
 type QuoteResponse = {
   holdMinutes?: number;
+  imageUrl?: string | null;
   blockMode?: {
     name: string;
     kind: string;
+    imageUrl?: string | null;
     earlyBird?: { basePriceCents: number; until: string } | null;
     description: string | null;
     venueName: string | null;
@@ -100,49 +102,60 @@ export function BookFlow({ signedIn, customerId, customerName, customerEmail, bl
   const r = quote?.result;
   const isGroupEvent = quote?.blockMode?.kind === "workshop" || quote?.blockMode?.kind === "retreat";
   const paidLines = r?.lines.filter((l) => l.kind === "class" || l.kind === "pass") ?? [];
+  const heroImage = quote?.blockMode?.imageUrl ?? quote?.imageUrl ?? null;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-6">
         {/* Selected classes */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-forest-900">{quote?.blockMode ? quote.blockMode.name : "Your selected classes"}</h2>
-          {quote?.blockMode ? (
-            <div className="mt-3 text-sm text-bark-700">
-              <p className="font-semibold text-forest-900">
-                {isGroupEvent ? quote.blockMode.rangeLabel : `${quote.blockMode.rangeLabel} · ${quote.blockMode.classCount} classes`}
-              </p>
-              {quote.blockMode.dates ? <p className="mt-1 leading-relaxed text-bark-500">{quote.blockMode.dates}</p> : null}
-              {isGroupEvent && quote.blockMode.description ? <p className="mt-2 leading-relaxed text-bark-700">{quote.blockMode.description}</p> : null}
-              <p className="mt-2 rounded-xl bg-oat-100 px-3 py-2 text-xs text-bark-700">
-                {isGroupEvent ? "One booking covers the whole event. Add each attendee below." : "One payment books you into every date. Block and bundle bookings are non-refundable."}
-              </p>
-            </div>
-          ) : (
-          <>
-          <ul className="mt-4 divide-y divide-oat-100">
-            {cart.ids.map((id) => {
-              const line = r?.lines.find((l) => (l as { occurrenceId?: number }).occurrenceId === id && l.kind === "class");
-              return (
-                <li key={id} className="flex items-center justify-between gap-4 py-3">
-                  <span className="text-sm text-bark-700">{line?.description ?? `Class #${id}`}</span>
-                  <button
-                    type="button"
-                    onClick={() => cart.remove(id)}
-                    className="text-sm font-semibold text-clay-700 underline underline-offset-4"
-                    aria-label={`Remove ${line?.description ?? "class"}`}
-                  >
-                    Remove
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <Link href="/classes" className="mt-2 inline-block text-sm font-semibold text-forest-800 underline underline-offset-4">
-            + Add more dates
-          </Link>
-          </>
-          )}
+        <Card className="overflow-hidden">
+          {heroImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroImage}
+              alt={quote?.blockMode?.name ?? "Selected class"}
+              className="h-48 sm:h-56 w-full object-cover"
+            />
+          ) : null}
+          <div className="p-6">
+            <h2 className="text-lg font-semibold text-forest-900">{quote?.blockMode ? quote.blockMode.name : "Your selected classes"}</h2>
+            {quote?.blockMode ? (
+              <div className="mt-3 text-sm text-bark-700">
+                <p className="font-semibold text-forest-900">
+                  {isGroupEvent ? quote.blockMode.rangeLabel : `${quote.blockMode.rangeLabel} · ${quote.blockMode.classCount} classes`}
+                </p>
+                {quote.blockMode.dates ? <p className="mt-1 leading-relaxed text-bark-500">{quote.blockMode.dates}</p> : null}
+                {isGroupEvent && quote.blockMode.description ? <p className="mt-2 leading-relaxed text-bark-700">{quote.blockMode.description}</p> : null}
+                <p className="mt-2 rounded-xl bg-oat-100 px-3 py-2 text-xs text-bark-700">
+                  {isGroupEvent ? "One booking covers the whole event. Add each attendee below." : "One payment books you into every date. Block and bundle bookings are non-refundable."}
+                </p>
+              </div>
+            ) : (
+            <>
+            <ul className="mt-4 divide-y divide-oat-100">
+              {cart.ids.map((id) => {
+                const line = r?.lines.find((l) => (l as { occurrenceId?: number }).occurrenceId === id && l.kind === "class");
+                return (
+                  <li key={id} className="flex items-center justify-between gap-4 py-3">
+                    <span className="text-sm text-bark-700">{line?.description ?? `Class #${id}`}</span>
+                    <button
+                      type="button"
+                      onClick={() => cart.remove(id)}
+                      className="text-sm font-semibold text-clay-700 underline underline-offset-4"
+                      aria-label={`Remove ${line?.description ?? "class"}`}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <Link href="/classes" className="mt-2 inline-block text-sm font-semibold text-forest-800 underline underline-offset-4">
+              + Add more dates
+            </Link>
+            </>
+            )}
+          </div>
         </Card>
 
         {/* Details form */}

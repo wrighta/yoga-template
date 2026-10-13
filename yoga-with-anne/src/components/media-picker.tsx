@@ -96,10 +96,55 @@ export function MediaPicker({
           {help ? <p className="text-xs text-bark-500">{help}</p> : null}
           {uploadMessage ? <p role="status" className="text-sm text-bark-700">{uploadMessage}</p> : null}
           {open && (
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-oat-200 bg-oat-50 p-3">
+            <div className="max-h-96 overflow-y-auto rounded-xl border border-oat-200 bg-oat-50 p-4 shadow-inner">
+              <div className="mb-4 rounded-xl border border-oat-200 bg-white p-3.5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-forest-900">Upload a new photo</p>
+                <div className="mt-2.5 flex flex-wrap items-end gap-3">
+                  <input
+                    ref={uploadRef}
+                    id={`inline-upload-${pickerId}`}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(event) => void uploadInline(event.target.files?.[0])}
+                  />
+                  <label
+                    htmlFor={`inline-upload-${pickerId}`}
+                    className={`inline-flex min-h-10 cursor-pointer items-center justify-center rounded-full bg-forest-800 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-900 ${
+                      uploading ? "pointer-events-none opacity-50" : ""
+                    }`}
+                  >
+                    {uploading ? "Uploading…" : "Browse & upload photo"}
+                  </label>
+                  <label htmlFor={`inline-alt-${pickerId}`} className="flex flex-1 min-w-[180px] flex-col gap-1 text-xs font-semibold text-forest-900">
+                    Alt text (optional)
+                    <input
+                      id={`inline-alt-${pickerId}`}
+                      value={uploadAlt}
+                      onChange={(event) => setUploadAlt(event.target.value)}
+                      className="rounded-lg border border-oat-300 px-3 py-2 text-sm font-normal"
+                      placeholder="Describe what the photo shows"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pb-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-bark-500">
+                  Or choose from library ({images.length})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="text-xs font-semibold text-forest-800 underline underline-offset-4"
+                >
+                  Close
+                </button>
+              </div>
+
               {images.length === 0 ? (
-                <p className="text-sm text-bark-500">
-                  No images in the library yet. Upload one below and it will be selected here.
+                <p className="py-2 text-sm text-bark-500">
+                  No images in the library yet. Use the upload box above to add your first photo.
                 </p>
               ) : (
                 <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -107,7 +152,7 @@ export function MediaPicker({
                     <button
                       type="button"
                       onClick={() => { setSelected(null); setOpen(false); }}
-                      className="flex h-16 w-full items-center justify-center rounded-lg border border-dashed border-oat-300 text-xs text-bark-500 hover:bg-white"
+                      className="flex h-16 w-full items-center justify-center rounded-lg border border-dashed border-oat-300 text-xs font-medium text-bark-500 hover:bg-white"
                     >
                       None
                     </button>
@@ -127,13 +172,6 @@ export function MediaPicker({
                   ))}
                 </ul>
               )}
-              <div className="mt-4 border-t border-oat-200 pt-4">
-                <input ref={uploadRef} id={`inline-upload-${pickerId}`} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void uploadInline(event.target.files?.[0])} />
-                <label htmlFor={`inline-upload-${pickerId}`} className={`inline-flex min-h-10 cursor-pointer items-center rounded-full border-2 border-forest-800 px-4 py-2 text-sm font-semibold text-forest-800 hover:bg-sage-100 ${uploading ? "pointer-events-none opacity-50" : ""}`}>
-                  {uploading ? "Uploading…" : "Browse and upload photo"}
-                </label>
-                <label htmlFor={`inline-alt-${pickerId}`} className="mt-3 flex flex-col gap-1.5 text-xs font-semibold text-forest-900">Alt text (optional)<input id={`inline-alt-${pickerId}`} value={uploadAlt} onChange={(event) => setUploadAlt(event.target.value)} className="rounded-lg border border-oat-300 px-3 py-2 text-sm font-normal" placeholder="Describe what the photo shows" /></label>
-              </div>
             </div>
           )}
         </div>

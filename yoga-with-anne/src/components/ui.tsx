@@ -12,9 +12,26 @@ export const btn = {
     "inline-flex items-center justify-center gap-1.5 rounded-full border border-forest-800/30 px-4 py-2 text-sm font-semibold text-forest-800 transition hover:bg-sage-100 min-h-[40px]",
 };
 
-export function ButtonLink({ href, children, variant = "primary", className = "" }: { href: string; children: ReactNode; variant?: keyof typeof btn; className?: string }) {
+export function ButtonLink({
+  href,
+  children,
+  variant = "primary",
+  className = "",
+  target,
+  rel,
+}: {
+  href: string;
+  children: ReactNode;
+  variant?: keyof typeof btn;
+  className?: string;
+  target?: string;
+  rel?: string;
+}) {
+  const isExternal = href.startsWith("http://") || href.startsWith("https://");
+  const linkTarget = target ?? (isExternal ? "_blank" : undefined);
+  const linkRel = rel ?? (linkTarget === "_blank" ? "noopener noreferrer" : undefined);
   return (
-    <Link href={href} className={`${btn[variant]} ${className}`}>
+    <Link href={href} target={linkTarget} rel={linkRel} className={`${btn[variant]} ${className}`}>
       {children}
     </Link>
   );

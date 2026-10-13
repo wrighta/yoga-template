@@ -1,6 +1,7 @@
 import { all, get, nowIso } from "@/db";
 import { getSettings, getDropInPriceCents } from "./settings";
 import { fmtDateTime } from "./tz";
+import { mediaUrl } from "./media";
 
 export type OccurrenceRow = {
   id: number;
@@ -28,6 +29,8 @@ export type OccurrenceView = OccurrenceRow & {
   venue_address: string | null;
   venue_map_url: string | null;
   instructor_name: string | null;
+  image_media_id: number | null;
+  image_url: string | null;
   booked: number;
   held: number;
   remaining: number;
@@ -95,7 +98,7 @@ export async function toView(row: OccurrenceRow): Promise<OccurrenceView> {
   }
 
   const ct = row.class_type_id
-    ? get<{ name: string; suitability: string | null }>(`SELECT name, suitability FROM class_types WHERE id = ?`, row.class_type_id)
+    ? get<{ name: string; suitability: string | null; image_media_id: number | null }>(`SELECT name, suitability, image_media_id FROM class_types WHERE id = ?`, row.class_type_id)
     : null;
   const venue = row.venue_id
     ? get<{ name: string; address: string | null; map_url: string | null }>(`SELECT name, address, map_url FROM venues WHERE id = ?`, row.venue_id)
@@ -117,6 +120,8 @@ export async function toView(row: OccurrenceRow): Promise<OccurrenceView> {
       state === "available" || state === "few_spaces",
     class_type_name: ct?.name ?? "",
     suitability: ct?.suitability ?? null,
+    image_media_id: ct?.image_media_id ?? null,
+    image_url: ct?.image_media_id ? mediaUrl(ct.image_media_id) : null,
     venue_name: venue?.name ?? null,
     venue_address: venue?.address ?? null,
     venue_map_url: venue?.map_url ?? null,

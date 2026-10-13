@@ -18,6 +18,7 @@ export type SiteSettings = {
   maintenance_mode: boolean;
   tax_note: string;
   announcement: string;
+  no_classes_notice: string;
   facebook_url: string;
   instagram_url: string;
   whatsapp_greeting: string;
@@ -50,6 +51,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   maintenance_mode: false,
   tax_note: "",
   announcement: "",
+  no_classes_notice: "",
   facebook_url: "",
   instagram_url: "",
   whatsapp_greeting: "Hi Anne! I'd like to ask about yoga classes.",

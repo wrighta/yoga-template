@@ -11,6 +11,7 @@ import { fmtEuro } from "@/lib/money";
 import { fmtDate } from "@/lib/tz";
 import { WaitlistForm } from "./waitlist-form";
 import { getBlockView } from "@/lib/blocks";
+import { getMedia } from "@/lib/media";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -52,8 +53,8 @@ export default async function ClassDetailPage({
   const multiDateActive = await isMultiDateDiscountActive();
   const [settings, classType, venue] = await Promise.all([
     getSettings(),
-    Promise.resolve(dbGet<{ name: string; description: string | null; suitability: string | null; what_to_bring: string | null; accessibility_note: string | null }>(
-      `SELECT name, description, suitability, what_to_bring, accessibility_note FROM class_types WHERE id = ?`,
+    Promise.resolve(dbGet<{ name: string; description: string | null; suitability: string | null; what_to_bring: string | null; accessibility_note: string | null; image_media_id: number | null }>(
+      `SELECT name, description, suitability, what_to_bring, accessibility_note, image_media_id FROM class_types WHERE id = ?`,
       view.class_type_id
     )),
     view.venue_id
@@ -63,8 +64,8 @@ export default async function ClassDetailPage({
         ))
       : Promise.resolve(null),
   ]);
-  const eventOffering = get<{ id: number; kind: string; name: string; start_date: string; end_date: string; price_cents: number; description: string | null; daily_times_json: string | null }>(
-    `SELECT cb.id, cb.kind, cb.name, cb.start_date, cb.end_date, cb.price_cents, cb.description, cb.daily_times_json
+  const eventOffering = get<{ id: number; kind: string; name: string; start_date: string; end_date: string; price_cents: number; description: string | null; daily_times_json: string | null; image_media_id: number | null }>(
+    `SELECT cb.id, cb.kind, cb.name, cb.start_date, cb.end_date, cb.price_cents, cb.description, cb.daily_times_json, cb.image_media_id
      FROM class_blocks cb JOIN class_series cs ON cs.id = cb.series_id JOIN class_occurrences o ON o.series_id = cs.id
      WHERE o.id = ? AND cb.kind IN ('workshop','retreat') AND cb.publication_status = 'published' AND cs.publication_status = 'published' LIMIT 1`, view.id
   );
@@ -106,6 +107,9 @@ export default async function ClassDetailPage({
   const parentBlocks = (await Promise.all(blockLinks.map((b) => getBlockView(b.id)))).filter(
     (b): b is NonNullable<typeof b> => !!b && b.active === 1 && b.onSale
   );
+
+  const imageMediaId = eventOffering?.image_media_id ?? parentBlocks[0]?.image_media_id ?? classType?.image_media_id ?? null;
+  const pageImage = imageMediaId ? getMedia(imageMediaId) : null;
 
   const eventJsonLd = view.status === "scheduled"
     ? {
@@ -182,6 +186,16 @@ export default async function ClassDetailPage({
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
+          {pageImage && (
+            <div className="overflow-hidden rounded-[var(--radius-card)] border border-oat-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/media/${pageImage.id}`}
+                alt={pageImage.alt || (eventOffering ? eventOffering.name : view.title)}
+                className="h-64 sm:h-80 w-full object-cover"
+              />
+            </div>
+          )}
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-forest-900">{eventOffering ? (eventOffering.kind === "retreat" ? "About this retreat" : "About this workshop") : "About this class"}</h2>
             <p className="mt-3 leading-relaxed text-bark-700">{eventOffering?.description ?? classType?.description}</p>

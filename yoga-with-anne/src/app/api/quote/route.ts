@@ -59,6 +59,7 @@ export async function POST(req: Request) {
           blockMode: {
             name: view.name,
             kind: view.kind,
+            imageUrl: view.imageUrl,
             earlyBird: view.isEarlyBird
               ? { basePriceCents: view.price_cents, until: fmtDate(`${view.early_bird_until}T12:00:00.000Z`, eventTz, true) }
               : null,
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
     };
     return NextResponse.json({
       result,
-      blockMode: { name: view.name, venueName: null, classCount: dateRows.length, dates: "", rangeLabel: `${parts.length} blocks included` },
+      blockMode: { name: view.name, imageUrl: null, venueName: null, classCount: dateRows.length, dates: "", rangeLabel: `${parts.length} blocks included` },
       signedIn: !!customer,
     });
   }
@@ -132,6 +133,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     result,
+    imageUrl: views.length === 1 ? views[0]!.image_url : null,
     customerName: customer?.name ?? null,
     signedIn: !!customer,
     classPassesEnabled: settings.class_passes_enabled,

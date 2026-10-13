@@ -101,7 +101,16 @@ export default async function ClassesPage({
 
       <div className="mt-10 space-y-12 pb-28">
         {weeks.length === 0 ? (
-          <Alert>Calendar loading - the next dates will appear here shortly. Or message Anne on WhatsApp to be added to the list.</Alert>
+          <div className="rounded-[var(--radius-card)] border border-oat-200 bg-white p-8 text-center sm:p-10">
+            <p className="text-lg font-medium text-bark-800">
+              {settings.no_classes_notice || "No upcoming classes currently scheduled."}
+            </p>
+            <p className="mt-2 text-sm text-bark-500">
+              {settings.no_classes_notice
+                ? "Check back soon, or message Anne on WhatsApp if you have questions about upcoming dates."
+                : "New dates will appear here shortly. Or message Anne on WhatsApp to be added to the list."}
+            </p>
+          </div>
         ) : (
           weeks.map((w) => {
             const first = w.items[0]?.startsAt ?? w.label;
